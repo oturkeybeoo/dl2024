@@ -1,55 +1,50 @@
-import math
-a = 0
-b = 0
-L = 0.0001
-threshold = 0.00001
+import random
 
-def predict(x):
-    return x*a + b
+class LinearRegression:
+    def __init__(self, X, Y, learningRate, threshold, init_a=random.randint(0, 100), init_b=random.randint(0, 100)) -> None:
+        self.a = init_a
+        self.b = init_b
+        self.X = X
+        self.Y = Y
+        self.learningRate = learningRate
+        self.threshold = threshold
 
-def square_error(x, y):
-    return (y - predict(x)) ** 2
+    def predict(self, x):
+        return x*self.a + self.b
 
-def mean_square_error(X, Y):
-    total_error = 0
-    for x,y in zip(X, Y):
-        total_error += square_error(x, y)
-    return total_error/len(X)
+    def mean_square_error(self):
+        total_error = 0
+        for x,y in zip(self.X, self.Y):
+            total_error += (y - self.predict(x)) ** 2
+        return total_error/len(X)
 
-def root_mean_square_error(X, Y):
-    return math.sqrt(mean_square_error(X, Y))
+    def derivative_a(self):
+        total_error = 0
+        for x,y in zip(self.X, self.Y):
+            total_error += -2*(y - self.predict(x))*x
+        return total_error/len(X)
 
-def square_error_derivative_a(x, y):
-    return -2*(y - predict(x))*x
+    def derivative_b(self):
+        total_error = 0
+        for x,y in zip(self.X, self.Y):
+            total_error += -2*(y - self.predict(x))
+        return total_error/len(X)
 
-def mean_square_error_derivative_a(X, Y):
-    total_error = 0
-    for x,y in zip(X, Y):
-        total_error += square_error_derivative_a(x, y)
-    return total_error/len(X)
-
-def square_error_derivative_b(x, y):
-    return -2*(y - predict(x))
-
-def mean_square_error_derivative_b(X, Y):
-    total_error = 0
-    for x,y in zip(X, Y):
-        total_error += square_error_derivative_b(x, y)
-    return total_error/len(X)
-
-X = [30, 32.4138, 34.8276, 37.2414, 39.6552]
-Y = [448.524, 509.248, 535.104, 551.432, 623.418]
+    def train(self):
+        old_a = self.a
+        self.a = self.a - self.learningRate * self.derivative_a()
+        self.b = self.b - self.learningRate * self.derivative_b()
+        if abs(old_a - self.a) < self.threshold: return False
+        return True
 
 
 if __name__ == "__main__":
-    old_a = 100
-    old_b = 100
-    i = 1
+    X = [30, 32.4138, 34.8276, 37.2414, 39.6552]
+    Y = [448.524, 509.248, 535.104, 551.432, 623.418]
 
-    while abs(b - old_b) > threshold:
-        old_a = a
-        old_b = b
-        a = a - L * mean_square_error_derivative_a(X, Y)
-        b = b - L * mean_square_error_derivative_b(X, Y)
-        i += 1
-        print(i, root_mean_square_error(X, Y))
+    linearRegression = LinearRegression(X, Y, 0.0001, 0.001)
+
+    cont = True
+    while cont:
+        cont = linearRegression.train()
+        print(linearRegression.mean_square_error())
