@@ -5,13 +5,11 @@ from typing import List
 class Neuron:
     def __init__(self, activation) -> None:
         self.output = 0
+        self.expectedOutput = 0
         self.activation = activation
 
     def update(self, input):
         self.output = self.activation(input)
-
-    def forward(self):
-        return self.output
 
 class BiasNeuron(Neuron):
     def __init__(self) -> None:
@@ -25,6 +23,7 @@ class Link:
         self.fromNeuron = fromNeuron
         self.toNeuron = toNeuron
         self.weight = weight
+        self.newWeight = weight
 
 class Layer:
     def __init__(self, activation, neuron_no) -> None:
@@ -50,15 +49,15 @@ class LayerLink:
         links = []
         for fNeuron in self.fromLayer.neurons:
             for tNeuron in self.toLayer.neurons:
-                if (isinstance(tNeuron, BiasNeuron)):
-                    pass
-                links.append(Link(fNeuron, tNeuron, random.randrange(-100,100)/100))
+                if (isinstance(tNeuron, BiasNeuron)): continue
+                links.append(Link(fNeuron, tNeuron, 0))#random.randrange(-100,100)/100))
         return links
 
 class NeuronNetwork:
-    def __init__(self, activation, file) -> None:
+    def __init__(self, activation, learningRate, file) -> None:
         layer_no, neuron_no = self._get_data(file)
         self.activation = activation
+        self.learningRate = learningRate
         self.layers = self._init_layers(layer_no, neuron_no)
         self.layerLinks = self._init_layer_links()
 
@@ -77,6 +76,48 @@ class NeuronNetwork:
             layerLinks.append(LayerLink(self.layers[i], self.layers[i+1]))
         return layerLinks
 
+    def train(self, X, Y):
+        for layer in self.layers[::-1]:
+            for layerLink in self.layerLinks:
+                if layerLink.toLayer == layer:
+                    currentLayerLink = layerLink
+        
+            for neuron in layer.neurons:
+                if isinstance(neuron, BiasNeuron): continue
+                neuron.expectedOutput = self.activation(self.weighted_sum(neuron, currentLayerLink))
+                for link in currentLayerLink.links:
+                    for x, y in zip(X, Y):
+                        self.predict(x)
+                        link.newWeight = self.update_weight(link, neuron.expectedOutput, neuron.output)
+
+        self.update_model()
+
+    def update_weight(self, link, expectedY, y):
+        return link.weight - self.learningRate * self.gradient_descent(expectedY, y, link.fromNeuron.output)
+
+    def gradient_descent(self, expectedY, y, x):
+        return (y*(1-expectedY) + expectedY*(1-y)) * x
+
+    def weighted_sum(self, neuron, layerLink):
+        weightedSum = 0
+        for link in layerLink.links:
+            if neuron == link.toNeuron:
+                weightedSum += link.weight * link.fromNeuron.output
+        return weightedSum
+    
+    def update_model(self):
+        for i, layer in enumerate(self.layers):
+            for j, neuron in enumerate(layer.neurons):
+                if isinstance(neuron, BiasNeuron): continue
+                # print(f"Layer {i} Neuron {j} old output = {neuron.output}")
+                neuron.output = neuron.expectedOutput
+                # print(f"Layer {i} Neuron {j} new output = {neuron.output}")
+
+        for i, layerLink in enumerate(self.layerLinks):
+            for j, link in enumerate(layerLink.links):
+                link.weight = link.newWeight
+                print(f"LayerLink {i} Link {j} weight = {neuron.output}")
+                
     def predict(self, inputs):
         input_layer = self.layers[0]
         for i, neuron in enumerate(input_layer.neurons[1:]):
@@ -84,23 +125,33 @@ class NeuronNetwork:
 
         for i, layer in enumerate(self.layers[1:]):
             for neuron in layer.neurons:
+                # TODO Change to use weighted_sum function
                 neuron_input = 0
                 for link in self.layerLinks[i].links:
                     if link.toNeuron == neuron:
                         neuron_input += link.weight * link.fromNeuron.output
-                print(f"Before: {neuron.output}")
                 neuron.update(neuron_input)
-                print(f"After: {neuron.output}")
         
+        predict = [neuron.output for neuron in self.layers[-1].neurons[1:]]
+        return predict
+
     def output(self):
         for i in range(len(self.layers)):
             for neuron in self.layers[i].neurons:
                 print(f"{i} layer: {neuron.output}")
 
-
 if __name__ == "__main__":
     activation = lambda x: 1/(1+math.exp(-x))
+    learningRate = 0.1
+    X = [[1,1], [1,0], [0,1], [0,0]]
+    Y = [0, 1, 1, 0]
+    nn = NeuronNetwork(activation, learningRate, "")
+    
+    for i in range(100):
+        print(f"Epoch {i}")
+        nn.train(X, Y)
+        print(f"Predict {nn.predict([0,0])}")
+        print("\n")
 
-    nn = NeuronNetwork(activation, "")
-    nn.predict([0,0])
-    nn.output()
+
+    
