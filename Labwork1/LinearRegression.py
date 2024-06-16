@@ -16,19 +16,19 @@ class LinearRegression:
         total_error = 0
         for x,y in zip(self.X, self.Y):
             total_error += (y - self.predict(x)) ** 2
-        return total_error/len(X)
+        return total_error/len(self.X)
 
     def derivative_a(self):
         total_error = 0
         for x,y in zip(self.X, self.Y):
             total_error += -2*(y - self.predict(x))*x
-        return total_error/len(X)
+        return total_error/len(self.X)
 
     def derivative_b(self):
         total_error = 0
         for x,y in zip(self.X, self.Y):
             total_error += -2*(y - self.predict(x))
-        return total_error/len(X)
+        return total_error/len(self.X)
 
     def train(self):
         old_a = self.a

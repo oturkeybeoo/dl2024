@@ -32,7 +32,7 @@ class GradientDescent:
         self.old_x = self.new_x
         self.new_x = self.old_x - self.L * (self.d_a * self.old_x + self.d_b)
         self.step += 1
-        if self.new_x - self.old_x < self.threshold: return False
+        if abs(self.new_x - self.old_x) < self.threshold: return False
         return True
     
     def show(self):
@@ -40,8 +40,7 @@ class GradientDescent:
 
 
 if __name__ == "__main__":
-    print("Start")
-    gd = GradientDescent(L=0.1, threshold=0.01, x0=-10, a=1)
+    gd = GradientDescent(L=0.4, threshold=0.01, x0=-10, a=1)
     gd.derivative()
 
     cont = True

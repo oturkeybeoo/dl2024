@@ -75,6 +75,52 @@ class NeuronNetwork:
         for i in range(len(self.layers)-1):
             layerLinks.append(LayerLink(self.layers[i], self.layers[i+1]))
         return layerLinks
+
+    def train(self, X, Y):
+        for layer in self.layers[::-1]:
+            for layerLink in self.layerLinks:
+                if layerLink.toLayer == layer:
+                    currentLayerLink = layerLink
+        
+            for neuron in layer.neurons:
+                if isinstance(neuron, BiasNeuron): continue
+                # neuron.expectedOutput = self.activation(self.weighted_sum(neuron, currentLayerLink))
+                for link in currentLayerLink.links:
+                    # for x, y in zip(X, Y):
+                    #     self.predict(x)
+                    link.newWeight = self.update_weight(link, neuron, currentLayerLink, X, Y)
+
+        self.update_model()
+
+    def update_weight(self, link, neuron, currentLayerLink, X, Y):
+        error = 0
+        for x, y in zip(X, Y):
+            self.predict(x)
+            neuron.expectedOutput = self.activation(self.weighted_sum(neuron, currentLayerLink))
+            error += -self.gradient_descent(neuron.expectedOutput, neuron.output, link.fromNeuron.output)
+
+        return link.weight - self.learningRate * error/len(X)
+
+    def gradient_descent(self, expectedY, y, x):
+        return -(y*(1-expectedY) + expectedY*(1-y)) * x
+
+    def weighted_sum(self, neuron, layerLink):
+        weightedSum = 0
+        for link in layerLink.links:
+            if neuron == link.toNeuron:
+                weightedSum += link.weight * link.fromNeuron.output
+        return weightedSum
+    
+    def update_model(self):
+        for i, layer in enumerate(self.layers):
+            for j, neuron in enumerate(layer.neurons):
+                if isinstance(neuron, BiasNeuron): continue
+                neuron.output = neuron.expectedOutput
+
+        for i, layerLink in enumerate(self.layerLinks):
+            for j, link in enumerate(layerLink.links):
+                link.weight = link.newWeight
+                print(f"LayerLink {i} Link {j} weight = {neuron.output}")
                 
     def predict(self, inputs):
         input_layer = self.layers[0]
