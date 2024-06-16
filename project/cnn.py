@@ -1,4 +1,5 @@
 import random
+import math 
 
 def matrix_convolution(matrix, filter):
   res = 0
@@ -120,12 +121,14 @@ def relu(x):
   if x < 0: return 0
   else: return x
 
+def relu_derivative(x):
+    return [1 if i > 0 else 0 for i in x]
+
 def soft_max(outputs):
-  if sum(outputs) == 0: return [0 for _ in range(len(outputs))]
-  res = []
-  for output in outputs:
-    res.append(output/sum(outputs))
-  return res
+  max_x = max(outputs)
+  exp_x = [math.exp(i - max_x) for i in outputs]
+  sum_exp_x = sum(exp_x)
+  return [i / sum_exp_x for i in exp_x]
 
 def dense(layer, weights):
   res = []
@@ -134,7 +137,6 @@ def dense(layer, weights):
     for i in range(len(layer)):
       output += layer[i]*weight[i]
     res.append(relu(output))
-  res = soft_max(res)
   return res
 
 def output(layer, weights):
@@ -160,9 +162,29 @@ def predict(result):
 def accuracy(pred, actual):
   corrects = 0
   for p, a in zip(pred, actual):
-    if p == a: corrects += 1
+    if predict(p) == predict(a): corrects += 1
   return corrects/len(actual)
  
+def cross_entropy(y_true, y_pred):
+  n = len(y_true)
+  log_likelihood = [-math.log(y_pred[i][y_true[i].index(1)]) for i in range(n)]
+  loss = sum(log_likelihood) / n
+  return loss
+
+def cross_entropy_derivative(y_true, y_pred):
+  return [[y_pred[i][j] - y_true[i][j] for j in range(len(y_true[i]))] for i in range(len(y_true))]
+
+def back_prob(input, expected_output, output):
+  n = len(input)
+  
+  # Gradients for output layer
+  error = cross_entropy_derivative(expected_output, output)
+  print(f"LEN ERROR = {len(error)}")
+  print(f"LEN INPUT = {len(input)}")
+  d_loss_w_hidden_output = [[sum(input[row] * error[row][j] for row in range(n)) / n for j in range(len(output))] for i in range(n)]
+  print(len(d_loss_w_hidden_output), d_loss_w_hidden_output)
+  # d_loss_b_output = [sum(error[row][j] for row in range(m)) / m for j in range(output_dim)]
+
 filter1 = [[-1,0,1],
           [-1,0,1],
           [-1,0,1]]
@@ -182,7 +204,7 @@ matrix = [[1,2,3,10],
           [13,14,15,16]]
 
 x_train = []
-with open("D:/Master/Deep Learning/project/x_train1.txt", 'r') as file:
+with open("D:/Master/Deep Learning/dl2024/project/x_train1.txt", 'r') as file:
     file_contents = file.read()
     file_contents = file_contents.replace('[', '')
     file_contents = file_contents.replace(']', '')
@@ -198,17 +220,19 @@ with open("D:/Master/Deep Learning/project/x_train1.txt", 'r') as file:
       x_train.append(data)
 
 y_train = []
-with open("D:/Master/Deep Learning/project/y_train1.txt", 'r') as file:
+with open("D:/Master/Deep Learning/dl2024/project/y_train1.txt", 'r') as file:
     file_contents = file.read()
+    file_contents = file_contents.replace('[', '')
+    file_contents = file_contents.replace(']', '')
     ys = file_contents.split('\n')
-    ys = [int(item) for item in ys]
+    ys = [[int(item) for item in row.split(',')] for row in ys]
     y_train = ys
 
 if __name__ == "__main__":
   seed = 3
   random.seed(seed)
   filters = [filter1, filter2, filter3, filter4]
-  predictions = []
+  y_pred = []
   for img in x_train:
     layer1 = convolution(img, filters)
     pooling1 = max_poolings(layer1, 5, 3)
@@ -226,11 +250,14 @@ if __name__ == "__main__":
     dense1 = dense(flatten1, weight1)
     # print("DENSE 1", dense1)
     dense2 = dense(dense1, weight1)
-    # print("DENSE 2", dense2)
     weight2 = [[random.uniform(-0.01, 0.01) for _ in range(len(dense1))] for _ in range(10)]
     output1 = output(dense2, weight2)
-    prediction = predict(output1)
-    predictions.append(prediction)
+    y_pred.append(output1)
+  
 
-  accuracy_score = accuracy(predictions, y_train)
+  back_prob(dense2, y_train, y_pred)
+
+  accuracy_score = accuracy(y_pred, y_train)
   print(f"Accuracy: {accuracy_score}")
+  
+  print(output1)
